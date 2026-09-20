@@ -1,0 +1,15 @@
+{
+  "name": "sowadalmughni",
+  "owner": {
+    "name": "Md. Sowad Al-Mughni",
+    "email": "sowad.al.mughni@gmail.com",
+    "url": "https://www.kitalonlabs.com"
+  },
+  "plugins": [
+    {
+      "name": "ai-codebase-audit",
+      "source": "./",
+      "description": "Audits AI-generated or AI-assisted codebases for disconnected schema, missing Row Level Security, exposed secrets, broken auth, and N+1/FinOps cost patterns. Outputs a severity-ranked remediation register."
+    }
+  ]
+}

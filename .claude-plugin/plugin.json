@@ -1,0 +1,22 @@
+{
+  "name": "ai-codebase-audit",
+  "version": "1.0.0",
+  "description": "Audits any AI-generated or AI-assisted codebase for the six failure modes that cause production collapse: disconnected schema, unwired frontend, incomplete backend wiring, missing Row Level Security, N+1 query explosions, and exposed secrets with broken authentication. Produces a severity-ranked remediation register.",
+  "author": {
+    "name": "Md. Sowad Al-Mughni",
+    "email": "sowad.al.mughni@gmail.com",
+    "url": "https://www.kitalonlabs.com"
+  },
+  "homepage": "https://github.com/sowadalmughni/ai-codebase-audit",
+  "repository": "https://github.com/sowadalmughni/ai-codebase-audit",
+  "license": "MIT",
+  "keywords": [
+    "audit",
+    "security",
+    "codebase-review",
+    "row-level-security",
+    "secrets-scanning",
+    "n+1-queries",
+    "finops"
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "description": "Detection patterns for the six AI-generated code failure modes",
+    "author": "Md. Sowad Al-Mughni <sowad.al.mughni@gmail.com>",
+    "homepage": "https://github.com/sowadalmughni/ai-codebase-audit",
+    "company": "Kitalon Labs",
+    "website": "https://www.kitalonlabs.com"
+  },
+
+  "secrets": {
+    "severity": "CRITICAL",
+    "description": "Hardcoded credentials, API keys, and tokens in source code or tracked config files",
+    "patterns": {
+      "api_keys": [
+        { "name": "Stripe Live Secret",      "regex": "sk_live_[a-zA-Z0-9]{24,}",          "context": "Payment key in production — immediate breach risk" },
+        { "name": "Stripe Test Secret",       "regex": "sk_test_[a-zA-Z0-9]{24,}",          "context": "Test key — should not be in source" },
+        { "name": "OpenAI API Key",           "regex": "sk-[a-zA-Z0-9]{32,}",               "context": "LLM API key — cost exposure risk" },
+        { "name": "Anthropic API Key",        "regex": "sk-ant-api[a-zA-Z0-9\\-]{20,}",     "context": "LLM API key — cost exposure risk" },
+        { "name": "AWS Access Key",           "regex": "AKIA[A-Z0-9]{16}",                  "context": "AWS credential — infrastructure breach risk" },
+        { "name": "AWS Secret Key",           "regex": "(?i)aws.{0,20}secret.{0,20}['\"][A-Za-z0-9/+=]{40}['\"]", "context": "AWS secret — infrastructure breach risk" },
+        { "name": "GitHub Token",             "regex": "ghp_[A-Za-z0-9]{36}",               "context": "GitHub PAT — repo access risk" },
+        { "name": "GitHub App Token",         "regex": "ghs_[A-Za-z0-9]{36}",               "context": "GitHub App token" },
+        { "name": "Slack Bot Token",          "regex": "xoxb-[A-Za-z0-9\\-]{50,}",          "context": "Slack token — messaging breach risk" },
+        { "name": "Slack User Token",         "regex": "xoxp-[A-Za-z0-9\\-]{50,}",          "context": "Slack user token" },
+        { "name": "SendGrid API Key",         "regex": "SG\\.[a-zA-Z0-9\\-_]{22}\\.[a-zA-Z0-9\\-_]{43}", "context": "Email API key" },
+        { "name": "Supabase Service Key",     "regex": "eyJ[a-zA-Z0-9\\-_]+\\.eyJ[a-zA-Z0-9\\-_]+\\.[a-zA-Z0-9\\-_]+", "context": "JWT — check if service role key in client bundle" },
+        { "name": "Generic Private Key",      "regex": "-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----", "context": "Private key — cryptographic material" },
+        { "name": "Hardcoded Password",       "regex": "(?i)(password|passwd|pwd)\\s*[=:]\\s*['\"][^'\"\\s]{6,}['\"]", "context": "Hardcoded credential" },
+        { "name": "Hardcoded Database URL",   "regex": "(?i)(database_url|db_url|mongo_uri|redis_url)\\s*[=:]\\s*['\"][^'\"\\s]+['\"]", "context": "Database connection string with credentials" }
+      ],
+      "dangerous_files": [
+        { "name": ".env tracked in git",       "check": "git ls-files | grep -E '^\\.env$'",         "severity": "CRITICAL" },
+        { "name": ".env.local tracked",        "check": "git ls-files | grep '\\.env\\.local'",       "severity": "CRITICAL" },
+        { "name": "service account JSON",      "check": "git ls-files | grep -E '\\.(json)$' | xargs grep -l 'private_key' 2>/dev/null", "severity": "CRITICAL" },
+        { "name": "credentials in gitignore",  "check": "cat .gitignore 2>/dev/null | grep -E '^\\.env'", "severity": "INFO — verify coverage" }
+      ],
+      "client_bundle_exposure": [
+        { "name": "Server key in React/Next component", "pattern": "process\\.env\\.(OPENAI|ANTHROPIC|STRIPE|AWS|SUPABASE_SERVICE)", "file_patterns": ["*.tsx", "*.jsx"], "context": "Server-side env var used in client component — key exposed to browser" },
+        { "name": "Supabase service role in client",    "pattern": "SUPABASE_SERVICE_ROLE_KEY|serviceRoleKey",                     "file_patterns": ["*.tsx", "*.jsx", "*.ts"], "context": "Service role bypasses RLS — catastrophic if client-side" }
+      ]
+    }
+  },
+
+  "rls": {
+    "severity": "CRITICAL",
+    "description": "Row Level Security disabled or missing on tables containing user data",
+    "context": "88% of AI-generated Supabase apps had RLS disabled or misconfigured in 2026 security audits",
+    "checks": {
+      "database_query": "SELECT schemaname, tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename",
+      "policy_query": "SELECT schemaname, tablename, policyname, permissive, roles, cmd FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename",
+      "static_patterns": [
+        { "name": "RLS disabled in migration", "pattern": "(?i)ALTER TABLE.*DISABLE ROW LEVEL SECURITY",    "severity": "CRITICAL" },
+        { "name": "RLS never enabled",         "pattern": "(?i)CREATE TABLE",                                "context": "Check paired with ENABLE ROW LEVEL SECURITY" },
+        { "name": "Anonymous key in backend",  "pattern": "NEXT_PUBLIC_SUPABASE_ANON_KEY",                  "file_patterns": ["*.ts", "*.py"], "context": "Anon key should only be in client-side code" }
+      ],
+      "high_risk_tables": ["users", "profiles", "orders", "payments", "subscriptions", "sessions", "documents", "messages", "transactions"]
+    }
+  },
+
+  "auth": {
+    "severity": "HIGH",
+    "description": "Missing authentication guards on API routes, or auth checks implemented only in the UI layer",
+    "patterns": {
+      "nestjs": {
+        "guard_decorator": "@UseGuards(",
+        "unguarded_route": "(?s)@(Get|Post|Put|Delete|Patch)\\([^)]*\\)(?:(?!@UseGuards).)*?async ",
+        "controller_class": "@Controller(",
+        "jwt_guard": "JwtAuthGuard|AuthGuard|RolesGuard"
+      },
+      "fastapi": {
+        "dependency_injection": "Depends(get_current_user)|Depends(verify_token)|Depends(oauth2_scheme)",
+        "unprotected_route": "@(app|router)\\.(get|post|put|delete|patch)\\([^)]*\\)\\s*\\n(?:(?!Depends).)*?def ",
+        "security_scheme": "HTTPBearer|OAuth2PasswordBearer|APIKeyHeader"
+      },
+      "express": {
+        "middleware": "app\\.use.*auth|router\\.use.*auth|authenticate|verifyToken",
+        "unprotected_route": "(?s)router\\.(get|post|put|delete)\\([^,]*,(?:(?!auth|verify|authenticate|middleware).)*?async"
+      },
+      "client_side_only": [
+        { "name": "UI-only auth check",    "pattern": "(?i)isAdmin|isAuthenticated|hasRole|userRole",        "file_patterns": ["*.tsx", "*.jsx"], "context": "Auth check in UI is bypassable — must also exist in API" },
+        { "name": "Conditional render auth","pattern": "(?i)\\{.*isLoggedIn.*&&|\\{.*user.*&&",              "file_patterns": ["*.tsx"], "context": "Rendering gated by auth state — ensure API also enforces" }
+      ]
+    }
+  },
+
+  "schema_connectivity": {
+    "severity": "HIGH",
+    "description": "Database tables created in migrations but never queried in application code",
+    "patterns": {
+      "migration_table_extraction": "(?i)CREATE TABLE\\s+(IF NOT EXISTS\\s+)?[`\"]?([a-zA-Z_][a-zA-Z0-9_]*)[`\"]?",
+      "orm_table_references": {
+        "typeorm":    "@Entity\\(['\"]([a-zA-Z_]+)['\"]\\)|@Entity\\(\\)",
+        "prisma":     "model ([A-Z][a-zA-Z]+) \\{",
+        "sqlalchemy": "class ([A-Z][a-zA-Z]+)\\(.*Base\\)|__tablename__\\s*=\\s*['\"]([a-zA-Z_]+)['\"]",
+        "raw_sql":    "(?i)FROM\\s+[`\"]?([a-zA-Z_][a-zA-Z0-9_]*)[`\"]?|INTO\\s+[`\"]?([a-zA-Z_][a-zA-Z0-9_]*)[`\"]?|UPDATE\\s+[`\"]?([a-zA-Z_][a-zA-Z0-9_]*)[`\"]?"
+      },
+      "unwired_integration_signals": [
+        { "name": "Placeholder function body", "pattern": "(?i)(return null|return \\[\\]|return {}|pass|NotImplementedError|TODO.*implement|FIXME.*wire)", "context": "Function stub — check if this is a real integration or unfinished code" },
+        { "name": "Hardcoded mock data",        "pattern": "(?i)const (mock|fake|dummy|stub|placeholder)[A-Z]|# ?mock|// ?mock",                             "context": "Mock data in production path — should be real API call" },
+        { "name": "Integration TODO comment",   "pattern": "(?i)TODO.*(api|backend|database|db|fetch|connect|wire|integrate|supabase|prisma|mongoose)",      "context": "Explicitly marked integration gap" }
+      ]
+    }
+  },
+
+  "n1_queries": {
+    "severity": "HIGH",
+    "description": "Query-in-loop patterns that cause O(n) database calls where one batched query would suffice",
+    "context": "Documented case: single AI-generated admin dashboard caused $12,000/month in database costs from N+1 queries",
+    "patterns": {
+      "loop_with_query": [
+        { "name": "for loop with await query",        "pattern": "for.*await.*(find|query|select|fetch|get|prisma|supabase|db\\.)", "context": "Executes one query per iteration" },
+        { "name": "map with await query",             "pattern": "\\.map\\(.*async.*await.*(find|query|select|fetch)",              "context": "Parallel queries — use findMany or IN clause instead" },
+        { "name": "forEach with await",               "pattern": "\\.forEach\\(.*async.*await",                                    "context": "forEach ignores async — likely causing race conditions too" },
+        { "name": "Promise.all with per-item query",  "pattern": "Promise\\.all\\(.*\\.map\\(.*await.*(find|query|select|fetch)",  "context": "Better than serial but still N queries — use batch" }
+      ],
+      "missing_eager_loading": [
+        { "name": "TypeORM findAll no relations",  "pattern": "find\\(\\{?\\}?\\)|findAll\\(\\)",                                   "file_patterns": ["*.ts"], "context": "Check for missing relations: option" },
+        { "name": "Prisma findMany no include",    "pattern": "findMany\\(\\{(?!.*include).*\\}\\)|findMany\\(\\)",                 "file_patterns": ["*.ts"], "context": "Check for missing include: {} for related entities" },
+        { "name": "SQLAlchemy no joinedload",      "pattern": "session\\.query\\([^)]+\\)\\.all\\(\\)|db\\.exec\\(",               "file_patterns": ["*.py"], "context": "Check for missing joinedload() for related entities" }
+      ],
+      "missing_pagination": [
+        { "name": "Unbounded findAll/findMany",   "pattern": "(findAll|findMany|getAll|listAll)\\((?!.*limit|.*take|.*page)",       "context": "No pagination — will return all rows at production scale" },
+        { "name": "SELECT * without LIMIT",       "pattern": "(?i)SELECT \\* FROM (?!.*LIMIT|.*limit)",                            "context": "Unbounded query — add LIMIT and OFFSET" },
+        { "name": "No pagination in GET endpoint","pattern": "(?s)@Get\\(\\)\\s*(?:(?!limit|page|offset|take|skip).)*?findAll",    "context": "List endpoint returns all records" }
+      ]
+    }
+  },
+
+  "finops": {
+    "severity": "MEDIUM",
+    "description": "Infrastructure patterns that cause runaway cloud costs at production scale",
+    "context": "AI-generated code can inflate cloud bills by 400% at production scale. Treat cost patterns as bugs.",
+    "patterns": {
+      "accidental_fan_out": [
+        { "name": "Multiple awaits in one handler", "pattern": "await.*\\n.*await.*\\n.*await",                                         "context": "Sequential external calls — consider parallel or queue" },
+        { "name": "External API in DB transaction", "pattern": "(?s)(BEGIN|transaction|tx\\.)((?!COMMIT|rollback).)*await.*fetch",      "context": "HTTP call inside DB transaction holds connection open" },
+        { "name": "Webhook triggering multiple APIs","pattern": "(?s)(webhook|event).*(await.*api\\.|await.*fetch.*http)",              "context": "One event → multiple external calls" }
+      ],
+      "unbounded_storage": [
+        { "name": "No file size limit on upload",    "pattern": "(?i)(upload|multer|formidable|multipart)(?!.*size|.*limit|.*maxSize)", "context": "Unbounded file upload — add maxSize constraint" },
+        { "name": "No storage lifecycle/TTL",        "pattern": "(?i)(s3\\.put|bucket\\.upload|supabase\\.storage\\.from)(?!.*Expires|.*ttl|.*lifecycle)", "context": "Files stored without expiry — add lifecycle policy" },
+        { "name": "Storing every event/log",         "pattern": "(?i)(INSERT INTO|create\\().*?\\b(event|log|audit|activity)\\b",      "context": "Check for retention policy and archival strategy" }
+      ],
+      "runaway_loops": [
+        { "name": "Retry without max attempts",      "pattern": "(?i)(retry|retryCount|attempts)(?!.*max|.*limit|.*3|.*5)",             "context": "Infinite retry risk — add maxAttempts" },
+        { "name": "No dead letter queue on worker",  "pattern": "(?i)(queue|worker|job|bull|celery)(?!.*deadLetter|.*failedQueue|.*dlq)","context": "Failed jobs retry forever — add DLQ" },
+        { "name": "setInterval without cleanup",     "pattern": "setInterval\\(",                                                       "context": "Check for clearInterval() in cleanup — memory leak risk" }
+      ],
+      "missing_caching": [
+        { "name": "No cache on expensive query",     "pattern": "(?s)@Get\\(.*\\).*(?:(?!cache|redis|memcache).)*?SELECT.*JOIN",       "context": "Complex JOIN on GET endpoint — add caching layer" },
+        { "name": "No HTTP cache headers",           "pattern": "(?s)@Get\\(.*\\).*(?:(?!Cache-Control|ETag|maxAge).)*?return",        "context": "Response missing cache headers — hitting DB on every request" }
+      ]
+    }
+  }
+}
