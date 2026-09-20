@@ -37,7 +37,17 @@ cp -r /tmp/ai-codebase-audit/skills/ai-codebase-audit ~/.claude/skills/ai-codeba
 
 ### Requirements
 
-Scripts are POSIX bash and rely on GNU grep's `-P` (PCRE) flag. They run as-is on Linux, WSL, and Git Bash on Windows. On stock macOS, install GNU grep first (`brew install grep`) — BSD grep does not support `-P` and scans will silently under-report. A live RLS check additionally requires `psql` and a `DATABASE_URL`; without it, `scan-rls.sh` falls back to static analysis only.
+Scripts are POSIX bash and rely on GNU grep's `-P` (PCRE) flag. They run as-is on Linux, WSL, and Git Bash on Windows. On stock macOS, install GNU grep first (`brew install grep`) — BSD grep does not support `-P`, and every script now checks for this at startup and exits with a clear error rather than silently under-reporting. A live RLS check additionally requires `psql` and a `DATABASE_URL`; without it, `scan-rls.sh` falls back to static analysis only.
+
+### Validating the Scanners
+
+Don't take the detection claims on faith — `evals/scan-fixtures/planted-issues/` is a small synthetic codebase with one deliberately planted issue per failure mode (a hardcoded key, a table with no RLS, an unguarded controller route, an N+1 loop, a disconnected table, hardcoded mock data). Run:
+
+```bash
+bash skills/ai-codebase-audit/evals/run-scan-checks.sh
+```
+
+This runs every scan script against the fixture and asserts each planted issue is actually caught, printing a PASS/FAIL line per assertion and exiting non-zero if anything regresses. Run this after modifying any detection pattern in `config/audit-vectors.json` or the scripts themselves.
 
 ---
 
@@ -108,13 +118,18 @@ ai-codebase-audit/
 │       ├── templates/
 │       │   ├── remediation-register.md  ← Structured output: one row per finding
 │       │   └── executive-summary.md     ← Client-facing audit report
-│       └── scripts/
-│           ├── triage.sh             ← Fast 2-minute health check (GREEN/YELLOW/RED)
-│           ├── scan-secrets.sh       ← CRITICAL: credentials and API key detection
-│           ├── scan-rls.sh           ← CRITICAL: Row Level Security audit
-│           ├── scan-auth.sh          ← HIGH: authentication and authorization gaps
-│           ├── scan-schema.sh        ← HIGH: disconnected schema and integration gaps
-│           └── scan-n1-queries.sh    ← HIGH: N+1 patterns and FinOps risks
+│       ├── scripts/
+│       │   ├── lib/preflight.sh      ← Shared dependency checks (fails loudly, not silently)
+│       │   ├── triage.sh             ← Fast 2-minute health check (GREEN/YELLOW/RED)
+│       │   ├── scan-secrets.sh       ← CRITICAL: credentials and API key detection
+│       │   ├── scan-rls.sh           ← CRITICAL: Row Level Security audit
+│       │   ├── scan-auth.sh          ← HIGH: authentication and authorization gaps
+│       │   ├── scan-schema.sh        ← HIGH: disconnected schema and integration gaps
+│       │   └── scan-n1-queries.sh    ← HIGH: N+1 patterns and FinOps risks
+│       └── evals/
+│           ├── run-scan-checks.sh    ← Validates every scanner against known-planted issues
+│           ├── scan-fixtures/        ← Fixture codebase, one planted issue per failure mode
+│           └── trigger-evals.json    ← Should-trigger / should-not-trigger phrasing checks
 ├── README.md                         ← This file
 ├── CHANGELOG.md
 └── LICENSE                           ← MIT

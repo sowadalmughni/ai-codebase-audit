@@ -2,6 +2,19 @@
 
 All notable changes to `ai-codebase-audit` are documented here.
 
+## [1.1.0] — 2026-09-20
+
+### Added
+
+- `scripts/lib/preflight.sh` — every scan script now checks for GNU grep's `-P` (PCRE) support and a valid target directory before scanning, and exits with a clear error instead of silently reporting zero findings when a dependency is missing. A scanner that fails silently and reports a false GREEN is worse than one that crashes.
+- `evals/scan-fixtures/planted-issues/` — a synthetic fixture codebase with one deliberately planted issue per failure mode (hardcoded key, table with no RLS, unguarded controller route, N+1 loop, disconnected table, hardcoded mock data), so the detection claims are checked against a known answer instead of taken on faith.
+- `evals/run-scan-checks.sh` — runs every scan script against the fixture and asserts each planted issue is actually caught; exits non-zero on any regression. Run this after changing any pattern in `config/audit-vectors.json`.
+- `evals/trigger-evals.json` — should-trigger / should-not-trigger phrasing checks used to tighten the `SKILL.md` description.
+
+### Changed
+
+- `SKILL.md` description — explicitly excludes generic/style code review ("not a linter") after the trigger evals showed the bare "review" verb over-matching requests like variable-naming feedback; the "database bill" trigger now anchors to wanting the codebase itself inspected, to avoid over-matching pure cloud-billing/cost-center questions that involve no code.
+
 ## [1.0.0] — 2026-09-20
 
 ### Added

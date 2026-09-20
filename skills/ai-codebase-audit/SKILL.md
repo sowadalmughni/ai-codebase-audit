@@ -4,17 +4,21 @@ description: |
   Audits any AI-generated or AI-assisted codebase for the six failure modes that
   cause production collapse: disconnected schema, unwired frontend pages, incomplete
   backend wiring, missing Row Level Security, N+1 query explosions, and exposed
-  secrets with broken authentication. Use when the user asks to audit, review, scan,
-  triage, or assess a codebase. Also use when the user says their app is broken, their
-  database bill is too high, they want to know if their app is production-ready, they
-  want a security check, they want to find architecture gaps, or they want to understand
-  why their AI-generated project stopped scaling. Produces a severity-ranked remediation
-  register (CRITICAL, HIGH, MEDIUM, LOW) with exact file paths, line numbers, and fix
-  snippets. Does not write implementation code. Does not fix inline during audit.
-  Audit and remediation are always separate phases.
+  secrets with broken authentication. Use when the user asks to audit, scan, triage,
+  or assess a codebase for these kinds of issues, or to review it specifically for
+  security, data-safety, or production-readiness problems — not for style, naming,
+  or generic code review; this is not a linter. Also use when the user says their
+  app is broken, their database or hosting bill is unexpectedly high and they want
+  the codebase itself inspected for the cause, they want to know if their app is
+  safe to launch or production-ready, they want a security check, they want to find
+  architecture or integration gaps, or they want to understand why their AI-generated
+  project stopped scaling. Produces a severity-ranked remediation register (CRITICAL,
+  HIGH, MEDIUM, LOW) with exact file paths, line numbers, and fix snippets. Does not
+  write implementation code. Does not fix inline during audit. Audit and remediation
+  are always separate phases.
 license: MIT
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   author: "Md. Sowad Al-Mughni"
   email: "sowad.al.mughni@gmail.com"
   company: "Kitalon Labs"

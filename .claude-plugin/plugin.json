@@ -1,6 +1,6 @@
 {
   "name": "ai-codebase-audit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Audits any AI-generated or AI-assisted codebase for the six failure modes that cause production collapse: disconnected schema, unwired frontend, incomplete backend wiring, missing Row Level Security, N+1 query explosions, and exposed secrets with broken authentication. Produces a severity-ranked remediation register.",
   "author": {
     "name": "Md. Sowad Al-Mughni",

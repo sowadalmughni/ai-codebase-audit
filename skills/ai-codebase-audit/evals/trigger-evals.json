@@ -1,0 +1,61 @@
+[
+  {
+    "query": "can you audit this codebase for security issues before I show it to investors",
+    "should_trigger": true
+  },
+  {
+    "query": "my supabase bill jumped from $40 to $600 this month and I have no idea why, can you look at my backend and figure out what's going on",
+    "should_trigger": true
+  },
+  {
+    "query": "I vibe-coded this whole app with cursor over a weekend, is it actually safe to put in front of real users?",
+    "should_trigger": true
+  },
+  {
+    "query": "review my nextjs + supabase app before launch, I'm worried something's not wired up right",
+    "should_trigger": true
+  },
+  {
+    "query": "we just found out our RLS policies might not be enabled on some tables, can you check the whole database layer",
+    "should_trigger": true
+  },
+  {
+    "query": "triage this repo real quick, i have a call with a client in 45 min and need to know if it's a mess",
+    "should_trigger": true
+  },
+  {
+    "query": "someone on twitter said AI-generated codebases usually have exposed API keys, can you check if mine does",
+    "should_trigger": true
+  },
+  {
+    "query": "can you review this PR and suggest better variable names",
+    "should_trigger": false,
+    "note": "near-miss: shares the 'review' verb but wants a style/naming pass, not a security or architecture audit"
+  },
+  {
+    "query": "write unit tests for the checkout function in src/checkout.ts",
+    "should_trigger": false
+  },
+  {
+    "query": "can you check if my TypeScript types are correct across the app",
+    "should_trigger": false
+  },
+  {
+    "query": "refactor this component to use hooks instead of class syntax",
+    "should_trigger": false
+  },
+  {
+    "query": "scan this PDF and extract the line items into a spreadsheet",
+    "should_trigger": false,
+    "note": "near-miss: shares the 'scan' verb but the object is a PDF, not a codebase"
+  },
+  {
+    "query": "audit our AWS spend for the last quarter and tell me which team is burning the most budget",
+    "should_trigger": false,
+    "note": "near-miss: shares the 'audit' verb and cost framing but is a billing/cost-center report across teams, not an inspection of a codebase"
+  },
+  {
+    "query": "check if my code follows our team's style guide (prettier/eslint config)",
+    "should_trigger": false
+  }
+]

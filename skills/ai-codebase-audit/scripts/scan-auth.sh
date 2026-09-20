@@ -8,6 +8,11 @@
 # =============================================================================
 
 ROOT="${1:-.}"
+
+# shellcheck source=lib/preflight.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/preflight.sh"
+require_gnu_grep
+require_dir "$ROOT"
 EXCLUDE="--exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build --exclude-dir=.next --exclude-dir=__pycache__"
 
 echo ""

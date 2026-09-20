@@ -9,6 +9,11 @@
 # =============================================================================
 
 ROOT="${1:-.}"
+
+# shellcheck source=lib/preflight.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/preflight.sh"
+require_gnu_grep
+require_dir "$ROOT"
 SCORE=100
 CRITICAL=0
 HIGH=0
